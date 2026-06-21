@@ -2,21 +2,30 @@
 
 A modern, browser-based video converter that converts WEBM files to MP4 format directly in your browser. No uploads, no server processing — all conversion happens locally on your device.
 
-License
-
 ✨ Features
 
 🎥 WEBM to MP4 Conversion — Convert videos directly in the browser
+
 🔒 Privacy First — Files never leave your device
+
 🎨 Modern UI — Beautiful gradient design with smooth animations
+
 🌍 Multilingual — Available in Ukrainian and English
+
 ⚡ No Installation — Works as a single HTML file
+
 📱 Responsive Design — Works on desktop, tablet, and mobile devices
+
 🎚️ Quality Settings — Choose between High, Medium, and Low quality
+
 📐 Resolution Options — Original, 1080p, 720p, or 480p output
+
 👁️ Live Preview — Watch conversion in real-time
+
 💾 State Persistence — Settings saved between sessions
+
 🎵 Audio Support — Preserves audio tracks in conversion
+
 🚀 No Dependencies — Uses only native browser APIs
 
 🚀 Getting Started
@@ -43,14 +52,16 @@ xdg-open index.html
 # Windows
 start index.html
 
-Or serve it with any static server:
-
 📖 Usage
 
 Upload a file — Drag and drop a WEBM file into the drop zone, or click to select one
+
 Configure settings — Choose your desired quality and resolution
+
 Convert — Click the "Convert to MP4" button
+
 Watch progress — See live preview and progress as conversion happens
+
 Download — Save the converted MP4 file to your device
 
 🛠️ How It Works
