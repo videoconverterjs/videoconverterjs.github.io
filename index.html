@@ -222,6 +222,24 @@ Copyright (c) 2025-2026 Valentyn Kolesnikov <0009-0003-9608-3364@orcid.org>
   .file-info-label { color: var(--text-muted); flex-shrink: 0; }
   .file-info-value { font-weight: 600; word-break: break-all; text-align: right; }
 
+  .audio-badge {
+    display: inline-block;
+    margin-left: 6px;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 11px;
+    font-weight: 700;
+    background: rgba(16,185,129,0.2);
+    color: #34d399;
+    border: 1px solid rgba(16,185,129,0.4);
+  }
+
+  .audio-badge.no {
+    background: rgba(239,68,68,0.15);
+    color: #fca5a5;
+    border-color: rgba(239,68,68,0.3);
+  }
+
   .settings-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -252,13 +270,98 @@ Copyright (c) 2025-2026 Valentyn Kolesnikov <0009-0003-9608-3364@orcid.org>
     transition: all 0.2s;
   }
 
-  select:hover, select:focus {
-    border-color: var(--primary);
-  }
+  select:hover, select:focus { border-color: var(--primary); }
+  select:disabled { opacity: 0.4; cursor: not-allowed; }
 
   select option {
     background: #1a1a3e;
     color: var(--text);
+  }
+
+  .toggle-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 14px;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    margin-bottom: 14px;
+    gap: 12px;
+  }
+
+  .toggle-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    flex: 1;
+    min-width: 0;
+  }
+
+  .toggle-label {
+    font-size: 14px;
+    font-weight: 600;
+  }
+
+  .toggle-hint {
+    font-size: 12px;
+    color: var(--text-muted);
+  }
+
+  .toggle-switch {
+    position: relative;
+    width: 50px;
+    height: 28px;
+    flex-shrink: 0;
+  }
+
+  .toggle-switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+  }
+
+  .toggle-slider {
+    position: absolute;
+    cursor: pointer;
+    inset: 0;
+    background: rgba(255,255,255,0.15);
+    transition: 0.3s;
+    border-radius: 28px;
+    border: 1px solid var(--border);
+  }
+
+  .toggle-slider::before {
+    position: absolute;
+    content: "";
+    height: 20px;
+    width: 20px;
+    left: 3px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: white;
+    transition: 0.3s;
+    border-radius: 50%;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+  }
+
+  .toggle-switch input:checked + .toggle-slider {
+    background: linear-gradient(135deg, var(--primary), var(--secondary));
+    border-color: transparent;
+  }
+
+  .toggle-switch input:checked + .toggle-slider::before {
+    transform: translate(22px, -50%);
+  }
+
+  .audio-options {
+    transition: opacity 0.3s, max-height 0.3s;
+    overflow: hidden;
+  }
+
+  .audio-options.disabled {
+    opacity: 0.4;
+    pointer-events: none;
   }
 
   .convert-btn {
@@ -339,6 +442,7 @@ Copyright (c) 2025-2026 Valentyn Kolesnikov <0009-0003-9608-3364@orcid.org>
     border-radius: 10px;
     overflow: hidden;
     border: 1px solid var(--border);
+    position: relative;
   }
 
   .preview-wrap canvas {
@@ -347,12 +451,33 @@ Copyright (c) 2025-2026 Valentyn Kolesnikov <0009-0003-9608-3364@orcid.org>
     display: block;
   }
 
+  .audio-meter {
+    position: absolute;
+    bottom: 8px;
+    left: 8px;
+    right: 8px;
+    height: 6px;
+    background: rgba(0,0,0,0.5);
+    border-radius: 3px;
+    overflow: hidden;
+    display: none;
+  }
+
+  .audio-meter.show { display: block; }
+
+  .audio-meter-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #10b981, #fbbf24, #ef4444);
+    width: 0%;
+    transition: width 0.05s linear;
+  }
+
   .log-area {
     margin-top: 12px;
     padding: 12px;
     background: rgba(0,0,0,0.3);
     border-radius: 10px;
-    max-height: 100px;
+    max-height: 120px;
     overflow-y: auto;
     font-family: 'Courier New', monospace;
     font-size: 11px;
@@ -519,11 +644,31 @@ Copyright (c) 2025-2026 Valentyn Kolesnikov <0009-0003-9608-3364@orcid.org>
           <span class="file-info-label" data-i18n="fileType">Тип:</span>
           <span class="file-info-value" id="fileType">-</span>
         </div>
+        <div class="file-info-row">
+          <span class="file-info-label" data-i18n="fileDuration">Тривалість:</span>
+          <span class="file-info-value" id="fileDuration">-</span>
+        </div>
+        <div class="file-info-row">
+          <span class="file-info-label" data-i18n="audioTrack">Аудіо:</span>
+          <span class="file-info-value" id="audioStatus">-</span>
+        </div>
       </div>
     </div>
 
     <div class="card" id="settingsCard">
       <h3 data-i18n="settings">Налаштування конвертації</h3>
+
+      <div class="toggle-row">
+        <div class="toggle-info">
+          <span class="toggle-label" data-i18n="includeAudio">Включити аудіо</span>
+          <span class="toggle-hint" id="audioToggleHint" data-i18n="includeAudioHint">Додати аудіодоріжку до MP4</span>
+        </div>
+        <label class="toggle-switch">
+          <input type="checkbox" id="includeAudioToggle" checked>
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+
       <div class="settings-grid">
         <div class="setting-item">
           <label data-i18n="quality">Якість</label>
@@ -544,6 +689,30 @@ Copyright (c) 2025-2026 Valentyn Kolesnikov <0009-0003-9608-3364@orcid.org>
         </div>
       </div>
 
+      <div class="audio-options" id="audioOptions">
+        <div class="settings-grid">
+          <div class="setting-item">
+            <label data-i18n="audioBitrate">Аудіо бітрейт</label>
+            <select id="audioBitrateSelect">
+              <option value="192000">192 kbps</option>
+              <option value="128000" selected>128 kbps</option>
+              <option value="96000">96 kbps</option>
+              <option value="64000">64 kbps</option>
+            </select>
+          </div>
+          <div class="setting-item">
+            <label data-i18n="audioVolume">Гучність аудіо</label>
+            <select id="audioVolumeSelect">
+              <option value="2">200%</option>
+              <option value="1.5">150%</option>
+              <option value="1" selected>100%</option>
+              <option value="0.75">75%</option>
+              <option value="0.5">50%</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
       <button class="convert-btn" id="convertBtn" disabled data-i18n="convertBtn">
         Конвертувати у MP4
       </button>
@@ -560,6 +729,9 @@ Copyright (c) 2025-2026 Valentyn Kolesnikov <0009-0003-9608-3364@orcid.org>
       </div>
       <div class="preview-wrap" id="previewWrap" style="display:none;">
         <canvas id="previewCanvas"></canvas>
+        <div class="audio-meter" id="audioMeter">
+          <div class="audio-meter-fill" id="audioMeterFill"></div>
+        </div>
       </div>
       <div class="log-area" id="logArea"></div>
     </div>
@@ -593,20 +765,33 @@ Copyright (c) 2025-2026 Valentyn Kolesnikov <0009-0003-9608-3364@orcid.org>
       fileName: "Назва:",
       fileSize: "Розмір:",
       fileType: "Тип:",
+      fileDuration: "Тривалість:",
+      audioTrack: "Аудіо:",
+      audioYes: "✓ Є",
+      audioNo: "✗ Немає",
+      audioChecking: "Перевірка...",
       settings: "Налаштування конвертації",
+      includeAudio: "Включити аудіо",
+      includeAudioHint: "Додати аудіодоріжку до MP4",
+      includeAudioHintNoSrc: "У вихідному файлі немає аудіо",
       quality: "Якість",
       qualityHigh: "Висока",
       qualityMedium: "Середня",
       qualityLow: "Низька",
       resolution: "Роздільна здатність",
       resOriginal: "Оригінальна",
+      audioBitrate: "Аудіо бітрейт",
+      audioVolume: "Гучність аудіо",
       convertBtn: "Конвертувати у MP4",
       converting: "Конвертація...",
       processing: "Обробка...",
       preparing: "Підготовка...",
+      warmup: "Підготовка декодера...",
       decoding: "Декодування відео...",
-      encoding: "Кодування у MP4...",
+      encoding: "Кодування...",
       finalizing: "Завершення...",
+      remuxing: "Виправлення метаданих...",
+      measuringDuration: "Вимірювання тривалості...",
       successTitle: "Конвертація завершена!",
       successText: "Ваш файл готовий до завантаження",
       downloadBtn: "⬇ Завантажити MP4",
@@ -629,20 +814,33 @@ Copyright (c) 2025-2026 Valentyn Kolesnikov <0009-0003-9608-3364@orcid.org>
       fileName: "Name:",
       fileSize: "Size:",
       fileType: "Type:",
+      fileDuration: "Duration:",
+      audioTrack: "Audio:",
+      audioYes: "✓ Yes",
+      audioNo: "✗ None",
+      audioChecking: "Checking...",
       settings: "Conversion Settings",
+      includeAudio: "Include Audio",
+      includeAudioHint: "Add audio track to MP4 output",
+      includeAudioHintNoSrc: "Source file has no audio",
       quality: "Quality",
       qualityHigh: "High",
       qualityMedium: "Medium",
       qualityLow: "Low",
       resolution: "Resolution",
       resOriginal: "Original",
+      audioBitrate: "Audio Bitrate",
+      audioVolume: "Audio Volume",
       convertBtn: "Convert to MP4",
       converting: "Converting...",
       processing: "Processing...",
       preparing: "Preparing...",
+      warmup: "Warming up decoder...",
       decoding: "Decoding video...",
-      encoding: "Encoding to MP4...",
+      encoding: "Encoding...",
       finalizing: "Finalizing...",
+      remuxing: "Fixing metadata...",
+      measuringDuration: "Measuring duration...",
       successTitle: "Conversion Complete!",
       successText: "Your file is ready for download",
       downloadBtn: "⬇ Download MP4",
@@ -662,6 +860,8 @@ Copyright (c) 2025-2026 Valentyn Kolesnikov <0009-0003-9608-3364@orcid.org>
   let selectedFile = null;
   let convertedBlob = null;
   let convertedExt = 'mp4';
+  let detectedHasAudio = null;
+  let detectedDuration = null;
 
   const STATE_KEY = 'videoConverterState';
 
@@ -674,15 +874,81 @@ Copyright (c) 2025-2026 Valentyn Kolesnikov <0009-0003-9608-3364@orcid.org>
       }
     });
     document.title = translations[currentLang].title + ' | WEBM → MP4';
+    refreshAudioStatus();
+    updateAudioToggleHint();
   }
 
   function t(key) { return translations[currentLang][key] || key; }
+
+  function formatDuration(sec) {
+    if (!sec || !isFinite(sec) || sec <= 0) return '-';
+    const h = Math.floor(sec / 3600);
+    const m = Math.floor((sec % 3600) / 60);
+    const s = Math.floor(sec % 60);
+    const ms = Math.round((sec - Math.floor(sec)) * 1000);
+    if (h > 0) {
+      return `${h}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+    }
+    return `${m}:${String(s).padStart(2,'0')}.${String(ms).padStart(3,'0')}`;
+  }
+
+  function refreshAudioStatus() {
+    const el = document.getElementById('audioStatus');
+    if (!el) return;
+    if (detectedHasAudio === true) {
+      el.innerHTML = `<span class="audio-badge">${t('audioYes')}</span>`;
+    } else if (detectedHasAudio === false) {
+      el.innerHTML = `<span class="audio-badge no">${t('audioNo')}</span>`;
+    } else if (selectedFile) {
+      el.textContent = t('audioChecking');
+    } else {
+      el.textContent = '-';
+    }
+  }
+
+  function refreshDuration() {
+    const el = document.getElementById('fileDuration');
+    if (!el) return;
+    if (detectedDuration === null && selectedFile) {
+      el.textContent = t('measuringDuration');
+    } else {
+      el.textContent = formatDuration(detectedDuration);
+    }
+  }
+
+  function updateAudioToggleHint() {
+    const hint = document.getElementById('audioToggleHint');
+    const toggle = document.getElementById('includeAudioToggle');
+    if (!hint || !toggle) return;
+
+    if (detectedHasAudio === false) {
+      hint.textContent = t('includeAudioHintNoSrc');
+      toggle.checked = false;
+      toggle.disabled = true;
+    } else {
+      hint.textContent = t('includeAudioHint');
+      toggle.disabled = false;
+    }
+    refreshAudioOptionsState();
+  }
+
+  function refreshAudioOptionsState() {
+    const toggle = document.getElementById('includeAudioToggle');
+    const audioOptions = document.getElementById('audioOptions');
+    const enabled = toggle.checked && !toggle.disabled;
+    audioOptions.classList.toggle('disabled', !enabled);
+    document.getElementById('audioBitrateSelect').disabled = !enabled;
+    document.getElementById('audioVolumeSelect').disabled = !enabled;
+  }
 
   function saveState() {
     const state = {
       lang: currentLang,
       quality: document.getElementById('qualitySelect').value,
       resolution: document.getElementById('resolutionSelect').value,
+      audioBitrate: document.getElementById('audioBitrateSelect').value,
+      audioVolume: document.getElementById('audioVolumeSelect').value,
+      includeAudio: document.getElementById('includeAudioToggle').checked,
       fileInfo: selectedFile ? {
         name: selectedFile.name,
         size: selectedFile.size,
@@ -705,6 +971,11 @@ Copyright (c) 2025-2026 Valentyn Kolesnikov <0009-0003-9608-3364@orcid.org>
       }
       if (state.quality) document.getElementById('qualitySelect').value = state.quality;
       if (state.resolution) document.getElementById('resolutionSelect').value = state.resolution;
+      if (state.audioBitrate) document.getElementById('audioBitrateSelect').value = state.audioBitrate;
+      if (state.audioVolume) document.getElementById('audioVolumeSelect').value = state.audioVolume;
+      if (typeof state.includeAudio === 'boolean') {
+        document.getElementById('includeAudioToggle').checked = state.includeAudio;
+      }
       if (state.fileInfo) {
         document.getElementById('fileName').textContent = state.fileInfo.name;
         document.getElementById('fileSize').textContent = formatSize(state.fileInfo.size);
@@ -734,6 +1005,7 @@ Copyright (c) 2025-2026 Valentyn Kolesnikov <0009-0003-9608-3364@orcid.org>
       btn.classList.add('active');
       currentLang = btn.dataset.lang;
       applyTranslations();
+      refreshDuration();
       saveState();
     });
   });
@@ -757,7 +1029,96 @@ Copyright (c) 2025-2026 Valentyn Kolesnikov <0009-0003-9608-3364@orcid.org>
     if (e.target.files.length) handleFile(e.target.files[0]);
   });
 
-  function handleFile(file) {
+  async function getAccurateDuration(file) {
+    return new Promise((resolve) => {
+      const url = URL.createObjectURL(file);
+      const v = document.createElement('video');
+      v.preload = 'metadata';
+      v.muted = true;
+      v.src = url;
+
+      let resolved = false;
+      const done = (duration) => {
+        if (resolved) return;
+        resolved = true;
+        URL.revokeObjectURL(url);
+        resolve(duration);
+      };
+
+      v.onloadedmetadata = () => {
+        if (v.duration === Infinity || isNaN(v.duration) || v.duration === 0) {
+          v.currentTime = Number.MAX_SAFE_INTEGER;
+          v.ontimeupdate = () => {
+            if (v.duration !== Infinity && !isNaN(v.duration) && v.duration > 0) {
+              v.ontimeupdate = null;
+              done(v.duration);
+            }
+          };
+          setTimeout(() => {
+            if (!resolved) {
+              if (v.duration !== Infinity && !isNaN(v.duration) && v.duration > 0) {
+                done(v.duration);
+              } else {
+                done(0);
+              }
+            }
+          }, 5000);
+        } else {
+          done(v.duration);
+        }
+      };
+      v.onerror = () => done(0);
+      setTimeout(() => done(0), 10000);
+    });
+  }
+
+  async function detectAudioTrack(file) {
+    return new Promise((resolve) => {
+      const url = URL.createObjectURL(file);
+      const v = document.createElement('video');
+      v.preload = 'metadata';
+      v.muted = true;
+      v.src = url;
+
+      let resolved = false;
+      const done = (result) => {
+        if (resolved) return;
+        resolved = true;
+        URL.revokeObjectURL(url);
+        resolve(result);
+      };
+
+      v.onloadedmetadata = () => {
+        if (typeof v.mozHasAudio === 'boolean') {
+          return done(v.mozHasAudio);
+        }
+        if (typeof v.webkitAudioDecodedByteCount === 'number') {
+          v.play().then(() => {
+            setTimeout(() => {
+              const hasAudio = v.webkitAudioDecodedByteCount > 0;
+              try { v.pause(); } catch(e) {}
+              done(hasAudio);
+            }, 300);
+          }).catch(() => {
+            if (v.audioTracks && v.audioTracks.length !== undefined) {
+              return done(v.audioTracks.length > 0);
+            }
+            done(true);
+          });
+          return;
+        }
+        if (v.audioTracks && v.audioTracks.length !== undefined) {
+          return done(v.audioTracks.length > 0);
+        }
+        done(true);
+      };
+
+      v.onerror = () => done(false);
+      setTimeout(() => done(true), 3000);
+    });
+  }
+
+  async function handleFile(file) {
     const isWEBM = file.name.toLowerCase().endsWith('.webm') ||
                    file.type === 'video/webm' ||
                    file.type.startsWith('video/');
@@ -766,17 +1127,43 @@ Copyright (c) 2025-2026 Valentyn Kolesnikov <0009-0003-9608-3364@orcid.org>
       return;
     }
     selectedFile = file;
+    detectedHasAudio = null;
+    detectedDuration = null;
     document.getElementById('fileName').textContent = file.name;
     document.getElementById('fileSize').textContent = formatSize(file.size);
     document.getElementById('fileType').textContent = file.type || 'video/webm';
     document.getElementById('fileInfo').classList.add('show');
     document.getElementById('convertBtn').disabled = false;
+
+    const toggle = document.getElementById('includeAudioToggle');
+    toggle.disabled = false;
+    refreshAudioStatus();
+    refreshDuration();
+    updateAudioToggleHint();
+
     showToast(t('toastLoaded'), 'success');
     saveState();
+
+    detectAudioTrack(file).then(hasAudio => {
+      detectedHasAudio = hasAudio;
+      refreshAudioStatus();
+      updateAudioToggleHint();
+    });
+
+    getAccurateDuration(file).then(dur => {
+      detectedDuration = dur;
+      refreshDuration();
+    });
   }
 
-  document.getElementById('qualitySelect').addEventListener('change', saveState);
-  document.getElementById('resolutionSelect').addEventListener('change', saveState);
+  ['qualitySelect','resolutionSelect','audioBitrateSelect','audioVolumeSelect'].forEach(id => {
+    document.getElementById(id).addEventListener('change', saveState);
+  });
+
+  document.getElementById('includeAudioToggle').addEventListener('change', () => {
+    refreshAudioOptionsState();
+    saveState();
+  });
 
   function updateProgress(percent, status) {
     document.getElementById('progressFill').style.width = percent + '%';
@@ -791,8 +1178,8 @@ Copyright (c) 2025-2026 Valentyn Kolesnikov <0009-0003-9608-3364@orcid.org>
     log.scrollTop = log.scrollHeight;
   }
 
-  function pickBestMime() {
-    const candidates = [
+  function pickBestMime(includeAudio) {
+    const candidates = includeAudio ? [
       { mime: 'video/mp4;codecs=avc1.42E01E,mp4a.40.2', ext: 'mp4'  },
       { mime: 'video/mp4;codecs=h264,aac',              ext: 'mp4'  },
       { mime: 'video/mp4;codecs=avc1.42001E',           ext: 'mp4'  },
@@ -801,6 +1188,14 @@ Copyright (c) 2025-2026 Valentyn Kolesnikov <0009-0003-9608-3364@orcid.org>
       { mime: 'video/webm;codecs=vp9,opus',             ext: 'webm' },
       { mime: 'video/webm;codecs=vp8,opus',             ext: 'webm' },
       { mime: 'video/webm',                             ext: 'webm' }
+    ] : [
+      { mime: 'video/mp4;codecs=avc1.42E01E', ext: 'mp4'  },
+      { mime: 'video/mp4;codecs=h264',        ext: 'mp4'  },
+      { mime: 'video/mp4',                    ext: 'mp4'  },
+      { mime: 'video/webm;codecs=h264',       ext: 'webm' },
+      { mime: 'video/webm;codecs=vp9',        ext: 'webm' },
+      { mime: 'video/webm;codecs=vp8',        ext: 'webm' },
+      { mime: 'video/webm',                   ext: 'webm' }
     ];
     for (const c of candidates) {
       if (MediaRecorder.isTypeSupported(c.mime)) return c;
@@ -815,61 +1210,482 @@ Copyright (c) 2025-2026 Valentyn Kolesnikov <0009-0003-9608-3364@orcid.org>
     return Math.max(800_000, Math.round(base * (map[quality] || 1.8)));
   }
 
-  /**
-   * Convert video using:
-   *  - <video> for decoding
-   *  - <canvas> for capturing frames via requestVideoFrameCallback (or rAF fallback)
-   *  - WebAudio API for capturing audio track
-   *  - MediaRecorder to encode combined video+audio stream
-   */
+  async function fixWebmDuration(blob, durationSeconds) {
+    try {
+      const buffer = await blob.arrayBuffer();
+      const data = new Uint8Array(buffer);
+
+      const SEGMENT_ID = [0x18, 0x53, 0x80, 0x67];
+      const INFO_ID = [0x15, 0x49, 0xA9, 0x66];
+      const DURATION_ID = [0x44, 0x89];
+      const TIMECODE_SCALE_ID = [0x2A, 0xD7, 0xB1];
+
+      function findBytes(arr, pattern, startFrom = 0, endAt = -1) {
+        const end = endAt === -1 ? arr.length - pattern.length : Math.min(endAt, arr.length - pattern.length);
+        outer: for (let i = startFrom; i <= end; i++) {
+          for (let j = 0; j < pattern.length; j++) {
+            if (arr[i + j] !== pattern[j]) continue outer;
+          }
+          return i;
+        }
+        return -1;
+      }
+
+      function readVint(arr, pos) {
+        const first = arr[pos];
+        let length = 0;
+        for (let i = 0; i < 8; i++) {
+          if (first & (0x80 >> i)) { length = i + 1; break; }
+        }
+        if (length === 0) return null;
+        let value = first & (0xFF >> length);
+        for (let i = 1; i < length; i++) {
+          value = (value * 256) + arr[pos + i];
+        }
+        return { value, length };
+      }
+
+      function encodeVint(value) {
+        let bytesNeeded = 1;
+        while (value >= Math.pow(2, 7 * bytesNeeded) - 1 && bytesNeeded < 8) {
+          bytesNeeded++;
+        }
+        const result = new Uint8Array(bytesNeeded);
+        const marker = 0x80 >> (bytesNeeded - 1);
+        let v = value;
+        for (let i = bytesNeeded - 1; i >= 0; i--) {
+          result[i] = v & 0xFF;
+          v = Math.floor(v / 256);
+        }
+        result[0] |= marker;
+        return result;
+      }
+
+      const segmentPos = findBytes(data, SEGMENT_ID);
+      if (segmentPos === -1) return blob;
+
+      const infoPos = findBytes(data, INFO_ID, segmentPos);
+      if (infoPos === -1) return blob;
+
+      const infoSizeStart = infoPos + INFO_ID.length;
+      const infoSize = readVint(data, infoSizeStart);
+      if (!infoSize) return blob;
+
+      const infoContentStart = infoSizeStart + infoSize.length;
+      const infoContentEnd = infoContentStart + infoSize.value;
+
+      let timecodeScale = 1000000;
+      const tsPos = findBytes(data, TIMECODE_SCALE_ID, infoContentStart, infoContentEnd);
+      if (tsPos !== -1) {
+        const tsSizeInfo = readVint(data, tsPos + TIMECODE_SCALE_ID.length);
+        if (tsSizeInfo) {
+          let ts = 0;
+          const tsValueStart = tsPos + TIMECODE_SCALE_ID.length + tsSizeInfo.length;
+          for (let i = 0; i < tsSizeInfo.value; i++) {
+            ts = ts * 256 + data[tsValueStart + i];
+          }
+          if (ts > 0) timecodeScale = ts;
+        }
+      }
+
+      const durationValue = (durationSeconds * 1e9) / timecodeScale;
+
+      const newDurationBytes = new Uint8Array(11);
+      newDurationBytes[0] = 0x44;
+      newDurationBytes[1] = 0x89;
+      newDurationBytes[2] = 0x88;
+      const floatView = new DataView(newDurationBytes.buffer);
+      floatView.setFloat64(3, durationValue, false);
+
+      let durationPos = findBytes(data, DURATION_ID, infoContentStart, infoContentEnd);
+
+      if (durationPos !== -1) {
+        const oldSizeInfo = readVint(data, durationPos + DURATION_ID.length);
+        if (oldSizeInfo) {
+          const oldTotalLen = DURATION_ID.length + oldSizeInfo.length + oldSizeInfo.value;
+          if (oldTotalLen === newDurationBytes.length) {
+            const result = new Uint8Array(data.length);
+            result.set(data);
+            result.set(newDurationBytes, durationPos);
+            addLog(`✓ WEBM duration replaced: ${durationSeconds.toFixed(2)}s`);
+            return new Blob([result], { type: blob.type });
+          }
+        }
+      }
+
+      const oldInfoContent = data.slice(infoContentStart, infoContentEnd);
+      const newInfoContent = new Uint8Array(oldInfoContent.length + newDurationBytes.length);
+      newInfoContent.set(oldInfoContent, 0);
+      newInfoContent.set(newDurationBytes, oldInfoContent.length);
+
+      const newInfoSize = encodeVint(newInfoContent.length);
+      const oldInfoTotalLen = INFO_ID.length + infoSize.length + infoSize.value;
+      const newInfoTotalLen = INFO_ID.length + newInfoSize.length + newInfoContent.length;
+      const sizeDiff = newInfoTotalLen - oldInfoTotalLen;
+
+      const segmentSizeStart = segmentPos + SEGMENT_ID.length;
+      const segmentSizeInfo = readVint(data, segmentSizeStart);
+      const isUnknownSize = !segmentSizeInfo ||
+        (segmentSizeInfo.value === Math.pow(2, 7 * segmentSizeInfo.length) - 1);
+
+      let newSegmentBytes;
+      if (segmentSizeInfo && !isUnknownSize) {
+        const newSegmentSizeValue = segmentSizeInfo.value + sizeDiff;
+        const newSegmentSizeVint = encodeVint(newSegmentSizeValue);
+        newSegmentBytes = new Uint8Array(SEGMENT_ID.length + newSegmentSizeVint.length);
+        newSegmentBytes.set(SEGMENT_ID, 0);
+        newSegmentBytes.set(newSegmentSizeVint, SEGMENT_ID.length);
+      } else {
+        const segHeadLen = SEGMENT_ID.length + (segmentSizeInfo ? segmentSizeInfo.length : 1);
+        newSegmentBytes = data.slice(segmentPos, segmentPos + segHeadLen);
+      }
+
+      const segmentHeadEnd = segmentSizeStart + (segmentSizeInfo ? segmentSizeInfo.length : 1);
+      const beforeSegment = data.slice(0, segmentPos);
+      const betweenSegAndInfo = data.slice(segmentHeadEnd, infoPos);
+      const afterInfo = data.slice(infoContentEnd);
+
+      const newInfoBytes = new Uint8Array(INFO_ID.length + newInfoSize.length + newInfoContent.length);
+      newInfoBytes.set(INFO_ID, 0);
+      newInfoBytes.set(newInfoSize, INFO_ID.length);
+      newInfoBytes.set(newInfoContent, INFO_ID.length + newInfoSize.length);
+
+      const totalSize = beforeSegment.length + newSegmentBytes.length +
+                        betweenSegAndInfo.length + newInfoBytes.length + afterInfo.length;
+      const result = new Uint8Array(totalSize);
+      let offset = 0;
+      result.set(beforeSegment, offset); offset += beforeSegment.length;
+      result.set(newSegmentBytes, offset); offset += newSegmentBytes.length;
+      result.set(betweenSegAndInfo, offset); offset += betweenSegAndInfo.length;
+      result.set(newInfoBytes, offset); offset += newInfoBytes.length;
+      result.set(afterInfo, offset);
+
+      addLog(`✓ WEBM remuxed: ${durationSeconds.toFixed(2)}s`);
+      return new Blob([result], { type: blob.type });
+    } catch (e) {
+      addLog('⚠ WEBM remux error: ' + e.message);
+      return blob;
+    }
+  }
+
+  async function fixMp4Duration(blob, durationSeconds) {
+    try {
+      const buffer = await blob.arrayBuffer();
+      const data = new Uint8Array(buffer);
+      const view = new DataView(buffer);
+
+      function readUint32(offset) { return view.getUint32(offset, false); }
+      function readUint64(offset) {
+        const high = view.getUint32(offset, false);
+        const low = view.getUint32(offset + 4, false);
+        return high * 0x100000000 + low;
+      }
+      function writeUint32(offset, value) { view.setUint32(offset, value >>> 0, false); }
+      function writeUint64(offset, value) {
+        const high = Math.floor(value / 0x100000000);
+        const low = value >>> 0;
+        view.setUint32(offset, high, false);
+        view.setUint32(offset + 4, low, false);
+      }
+      function readType(offset) {
+        return String.fromCharCode(data[offset], data[offset+1], data[offset+2], data[offset+3]);
+      }
+
+      function findBox(targetType, startOffset, endOffset) {
+        let pos = startOffset;
+        while (pos < endOffset - 8) {
+          let size = readUint32(pos);
+          const type = readType(pos + 4);
+          let headerLen = 8;
+          if (size === 1) {
+            size = readUint64(pos + 8);
+            headerLen = 16;
+          } else if (size === 0) {
+            size = endOffset - pos;
+          }
+          if (size < 8) return null;
+          if (type === targetType) {
+            return { offset: pos, size, headerLen, contentStart: pos + headerLen, contentEnd: pos + size };
+          }
+          pos += size;
+        }
+        return null;
+      }
+
+      function findAllBoxes(targetType, startOffset, endOffset) {
+        const found = [];
+        let pos = startOffset;
+        while (pos < endOffset - 8) {
+          let size = readUint32(pos);
+          const type = readType(pos + 4);
+          let headerLen = 8;
+          if (size === 1) {
+            size = readUint64(pos + 8);
+            headerLen = 16;
+          } else if (size === 0) {
+            size = endOffset - pos;
+          }
+          if (size < 8) break;
+          if (type === targetType) {
+            found.push({ offset: pos, size, headerLen, contentStart: pos + headerLen, contentEnd: pos + size });
+          }
+          pos += size;
+        }
+        return found;
+      }
+
+      const moov = findBox('moov', 0, data.length);
+      if (!moov) { addLog('⚠ MP4: no moov box found'); return blob; }
+
+      const mvhd = findBox('mvhd', moov.contentStart, moov.contentEnd);
+      if (!mvhd) { addLog('⚠ MP4: no mvhd found'); return blob; }
+
+      const mvhdContentStart = mvhd.contentStart;
+      const version = data[mvhdContentStart];
+
+      let movieTimescale;
+      let mvhdDurationOffset;
+      if (version === 1) {
+        movieTimescale = readUint32(mvhdContentStart + 4 + 8 + 8);
+        mvhdDurationOffset = mvhdContentStart + 4 + 8 + 8 + 4;
+      } else {
+        movieTimescale = readUint32(mvhdContentStart + 4 + 4 + 4);
+        mvhdDurationOffset = mvhdContentStart + 4 + 4 + 4 + 4;
+      }
+
+      const newMvhdDuration = Math.round(durationSeconds * movieTimescale);
+
+      if (version === 1) {
+        writeUint64(mvhdDurationOffset, newMvhdDuration);
+      } else {
+        if (newMvhdDuration <= 0xFFFFFFFF) {
+          writeUint32(mvhdDurationOffset, newMvhdDuration);
+        }
+      }
+      addLog(`✓ mvhd duration → ${durationSeconds.toFixed(2)}s`);
+
+      const traks = findAllBoxes('trak', moov.contentStart, moov.contentEnd);
+
+      for (const trak of traks) {
+        const tkhd = findBox('tkhd', trak.contentStart, trak.contentEnd);
+        if (tkhd) {
+          const tkhdContentStart = tkhd.contentStart;
+          const tkhdVersion = data[tkhdContentStart];
+          let tkhdDurationOffset;
+          if (tkhdVersion === 1) {
+            tkhdDurationOffset = tkhdContentStart + 4 + 8 + 8 + 4 + 4;
+            writeUint64(tkhdDurationOffset, newMvhdDuration);
+          } else {
+            tkhdDurationOffset = tkhdContentStart + 4 + 4 + 4 + 4 + 4;
+            if (newMvhdDuration <= 0xFFFFFFFF) {
+              writeUint32(tkhdDurationOffset, newMvhdDuration);
+            }
+          }
+        }
+
+        const mdia = findBox('mdia', trak.contentStart, trak.contentEnd);
+        if (mdia) {
+          const mdhd = findBox('mdhd', mdia.contentStart, mdia.contentEnd);
+          if (mdhd) {
+            const mdhdContentStart = mdhd.contentStart;
+            const mdhdVersion = data[mdhdContentStart];
+            let mediaTimescale;
+            let mdhdDurationOffset;
+            if (mdhdVersion === 1) {
+              mediaTimescale = readUint32(mdhdContentStart + 4 + 8 + 8);
+              mdhdDurationOffset = mdhdContentStart + 4 + 8 + 8 + 4;
+              const newMediaDuration = Math.round(durationSeconds * mediaTimescale);
+              writeUint64(mdhdDurationOffset, newMediaDuration);
+            } else {
+              mediaTimescale = readUint32(mdhdContentStart + 4 + 4 + 4);
+              mdhdDurationOffset = mdhdContentStart + 4 + 4 + 4 + 4;
+              const newMediaDuration = Math.round(durationSeconds * mediaTimescale);
+              if (newMediaDuration <= 0xFFFFFFFF) {
+                writeUint32(mdhdDurationOffset, newMediaDuration);
+              }
+            }
+          }
+        }
+      }
+
+      return new Blob([data], { type: blob.type });
+    } catch (e) {
+      addLog('⚠ MP4 patch error: ' + e.message);
+      return blob;
+    }
+  }
+
+  // ============================================================
+  // SMOOTH START WARMUP
+  // ============================================================
+  // To eliminate startup stutter in the output file, we need to ensure
+  // that BEFORE we hit recorder.start() and video.play():
+  //  1. The video decoder has decoded the first frame AND the first
+  //     few frames are buffered/ready (not just decoded on demand).
+  //  2. The audio pipeline is fully running with the AudioContext
+  //     primed (not in 'suspended' state and not in its first-process
+  //     latency window).
+  //  3. The canvas already has frame 0 drawn and pushed into the stream.
+  //  4. The first encoder keyframe is requested.
+  //
+  // We achieve this with a "warmup" phase: briefly play the video muted
+  // at time=0 with the AudioContext suspended, decoding the first
+  // several frames into the canvas. Then we pause, seek back to 0,
+  // resume audio, and start recording.
+
+  async function warmupVideo(video, ctx, canvas, outW, outH, videoTrack, useRVFC) {
+    addLog('Warmup: priming decoder...');
+
+    // Set video to time 0 and wait for a real seeked
+    if (video.currentTime !== 0) {
+      await new Promise(resolve => {
+        const onSeeked = () => { video.removeEventListener('seeked', onSeeked); resolve(); };
+        video.addEventListener('seeked', onSeeked);
+        try { video.currentTime = 0; } catch(e) { resolve(); }
+        setTimeout(resolve, 500);
+      });
+    }
+
+    // Mute audio for warmup to avoid audio playing during prep
+    const wasMuted = video.muted;
+    const wasVolume = video.volume;
+    video.muted = true;
+
+    // Briefly play to force the decoder to decode the first ~10 frames
+    try {
+      await video.play();
+    } catch(e) {
+      addLog('Warmup play failed: ' + e.message);
+      video.muted = wasMuted;
+      video.volume = wasVolume;
+      return;
+    }
+
+    // Collect at least 6 decoded frames via rVFC, or wait ~200ms
+    let warmupFrames = 0;
+    const WARMUP_TARGET = 6;
+
+    await new Promise(resolve => {
+      let finished = false;
+      const finish = () => { if (!finished) { finished = true; resolve(); } };
+
+      if (useRVFC) {
+        const onFrame = () => {
+          if (finished) return;
+          // Decode + draw to canvas to populate it for the stream
+          ctx.drawImage(video, 0, 0, outW, outH);
+          warmupFrames++;
+          if (warmupFrames >= WARMUP_TARGET) {
+            finish();
+          } else {
+            video.requestVideoFrameCallback(onFrame);
+          }
+        };
+        video.requestVideoFrameCallback(onFrame);
+      } else {
+        const t0 = performance.now();
+        const tick = () => {
+          if (finished) return;
+          ctx.drawImage(video, 0, 0, outW, outH);
+          warmupFrames++;
+          if (performance.now() - t0 > 250 || warmupFrames >= WARMUP_TARGET) {
+            finish();
+          } else {
+            requestAnimationFrame(tick);
+          }
+        };
+        requestAnimationFrame(tick);
+      }
+
+      // Safety timeout
+      setTimeout(finish, 800);
+    });
+
+    addLog(`Warmup: decoded ${warmupFrames} frames`);
+
+    // Pause and rewind to exact 0
+    video.pause();
+    await new Promise(resolve => {
+      const onSeeked = () => { video.removeEventListener('seeked', onSeeked); resolve(); };
+      video.addEventListener('seeked', onSeeked);
+      try { video.currentTime = 0; } catch(e) { resolve(); }
+      setTimeout(resolve, 500);
+    });
+
+    // Wait for frame 0 to be re-decoded after seek
+    if (useRVFC) {
+      await new Promise(resolve => {
+        let resolved = false;
+        const done = () => { if (!resolved) { resolved = true; resolve(); } };
+        video.requestVideoFrameCallback(() => {
+          ctx.drawImage(video, 0, 0, outW, outH);
+          done();
+        });
+        setTimeout(done, 300);
+      });
+    } else {
+      await new Promise(r => setTimeout(r, 50));
+      ctx.drawImage(video, 0, 0, outW, outH);
+    }
+
+    // Restore audio settings
+    video.muted = wasMuted;
+    video.volume = wasVolume;
+
+    addLog('Warmup: decoder ready at frame 0');
+  }
+
   async function convertVideo(file, options) {
-    const { quality, resolution } = options;
+    const { quality, resolution, audioBitrate, audioVolume, includeAudio, knownDuration } = options;
 
     updateProgress(2, t('preparing'));
     addLog(t('preparing'));
+    addLog('Audio: ' + (includeAudio ? 'INCLUDED' : 'DISABLED'));
 
-    // 1. Setup video element
     const videoURL = URL.createObjectURL(file);
     const video = document.createElement('video');
     video.src = videoURL;
     video.crossOrigin = 'anonymous';
     video.playsInline = true;
     video.preload = 'auto';
-    // IMPORTANT: do NOT use video.muted = true (it disables audio track)
-    // Use volume = 0 so we don't hear it, but audio track stays alive
-    video.volume = 0;
+
+    if (!includeAudio) {
+      video.muted = true;
+    }
 
     await new Promise((resolve, reject) => {
-      const onMeta = () => {
-        video.removeEventListener('loadedmetadata', onMeta);
+      const onReady = () => {
+        video.removeEventListener('loadeddata', onReady);
         video.removeEventListener('error', onErr);
         resolve();
       };
       const onErr = () => {
-        video.removeEventListener('loadedmetadata', onMeta);
+        video.removeEventListener('loadeddata', onReady);
         video.removeEventListener('error', onErr);
         reject(new Error(t('errVideoLoad')));
       };
-      video.addEventListener('loadedmetadata', onMeta);
+      video.addEventListener('loadeddata', onReady);
       video.addEventListener('error', onErr);
       setTimeout(() => reject(new Error('Video load timeout')), 30000);
     });
 
-    // Some browsers need seek to ensure first frame is decoded
-    await new Promise(resolve => {
-      const onSeeked = () => { video.removeEventListener('seeked', onSeeked); resolve(); };
-      video.addEventListener('seeked', onSeeked);
-      try { video.currentTime = 0; } catch(e) { resolve(); }
-      setTimeout(resolve, 1000);
-    });
-
-    addLog(`Video: ${video.videoWidth}x${video.videoHeight}, ${video.duration.toFixed(2)}s`);
+    let realDuration = video.duration;
+    if (!isFinite(realDuration) || realDuration === 0) {
+      if (knownDuration && knownDuration > 0) {
+        realDuration = knownDuration;
+      } else {
+        realDuration = await getAccurateDuration(file);
+      }
+    }
+    addLog(`Video: ${video.videoWidth}x${video.videoHeight}, ${realDuration.toFixed(2)}s`);
 
     if (!video.videoWidth || !video.videoHeight) {
-      throw new Error('Video has no visual track or is corrupted');
+      throw new Error('Video has no visual track');
+    }
+    if (!realDuration || realDuration <= 0) {
+      throw new Error('Cannot determine video duration');
     }
 
-    // 2. Calculate output dimensions
     let outW = video.videoWidth;
     let outH = video.videoHeight;
     if (resolution !== 'original') {
@@ -880,60 +1696,78 @@ Copyright (c) 2025-2026 Valentyn Kolesnikov <0009-0003-9608-3364@orcid.org>
         outW = Math.round(targetH * ratio);
       }
     }
-    // Ensure even dimensions
     outW = outW % 2 === 0 ? outW : outW + 1;
     outH = outH % 2 === 0 ? outH : outH + 1;
     addLog(`Output: ${outW}x${outH}`);
 
-    // 3. Setup canvas with PREVIEW
     const canvas = document.getElementById('previewCanvas');
     canvas.width = outW;
     canvas.height = outH;
     const ctx = canvas.getContext('2d', { alpha: false, desynchronized: true });
-    // initial paint
     ctx.fillStyle = '#000';
     ctx.fillRect(0, 0, outW, outH);
     document.getElementById('previewWrap').style.display = 'flex';
 
-    // 4. Pick MIME
-    const picked = pickBestMime();
+    const picked = pickBestMime(includeAudio);
     if (!picked) throw new Error('MediaRecorder not supported');
     convertedExt = picked.ext;
-    addLog('Output format: ' + picked.mime);
+    addLog('Format: ' + picked.mime);
     if (picked.ext !== 'mp4') showToast(t('errNoMP4'), 'error');
 
-    // 5. Setup audio capture (optional - video may not have audio)
     let audioCtx = null;
     let audioDest = null;
+    let analyser = null;
+    let gainNode = null;
+    let audioSource = null;
     let hasAudio = false;
-    try {
-      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-      const audioSource = audioCtx.createMediaElementSource(video);
-      audioDest = audioCtx.createMediaStreamDestination();
-      audioSource.connect(audioDest);
-      // Don't connect to speakers - silent capture
-      hasAudio = audioDest.stream.getAudioTracks().length > 0;
-      addLog(hasAudio ? 'Audio capture: ready' : 'Audio capture: no tracks');
-    } catch (e) {
-      addLog('Audio capture failed: ' + e.message);
-      hasAudio = false;
+    let audioMeterRAF = null;
+
+    if (includeAudio) {
+      try {
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        audioCtx = new AudioCtx();
+
+        // ====== AUDIO PIPELINE BUILT BUT SUSPENDED DURING WARMUP ======
+        audioSource = audioCtx.createMediaElementSource(video);
+
+        gainNode = audioCtx.createGain();
+        gainNode.gain.value = parseFloat(audioVolume) || 1.0;
+
+        audioDest = audioCtx.createMediaStreamDestination();
+
+        analyser = audioCtx.createAnalyser();
+        analyser.fftSize = 256;
+
+        audioSource.connect(gainNode);
+        gainNode.connect(audioDest);
+        gainNode.connect(analyser);
+
+        // Force AudioContext to be running early so the audio graph
+        // has time to initialize (eliminates first-second audio gap)
+        if (audioCtx.state === 'suspended') {
+          try { await audioCtx.resume(); } catch(e) {}
+        }
+
+        const audioTracks = audioDest.stream.getAudioTracks();
+        hasAudio = audioTracks.length > 0;
+        addLog(`Audio: ${hasAudio ? 'OK' : 'no tracks'} @ ${(gainNode.gain.value * 100).toFixed(0)}%`);
+      } catch (e) {
+        addLog('Audio pipeline failed: ' + e.message);
+        hasAudio = false;
+      }
     }
 
-    // 6. Create canvas stream (captureStream with 0 -> manual frame requests via requestFrame())
-    // Using fps=0 lets us push frames manually for perfect sync with rVFC
-    const FPS = 30;
+    // ====== Stream + recorder created EARLY so they're ready ======
     const canvasStream = canvas.captureStream(0);
     const videoTrack = canvasStream.getVideoTracks()[0];
 
-    // Combine tracks
     const tracks = [videoTrack];
-    if (hasAudio && audioDest) {
+    if (includeAudio && hasAudio && audioDest) {
       audioDest.stream.getAudioTracks().forEach(tr => tracks.push(tr));
     }
     const combinedStream = new MediaStream(tracks);
-    addLog(`Stream tracks: video=1, audio=${hasAudio ? 1 : 0}`);
+    const audioTrackCount = combinedStream.getAudioTracks().length;
 
-    // 7. Setup MediaRecorder
     const videoBps = getBitrate(quality, outW, outH);
     addLog(`Video bitrate: ${(videoBps/1e6).toFixed(2)} Mbps`);
 
@@ -941,7 +1775,9 @@ Copyright (c) 2025-2026 Valentyn Kolesnikov <0009-0003-9608-3364@orcid.org>
       mimeType: picked.mime,
       videoBitsPerSecond: videoBps
     };
-    if (hasAudio) recorderOpts.audioBitsPerSecond = 128_000;
+    if (audioTrackCount > 0) {
+      recorderOpts.audioBitsPerSecond = parseInt(audioBitrate) || 128_000;
+    }
 
     const recorder = new MediaRecorder(combinedStream, recorderOpts);
 
@@ -955,15 +1791,51 @@ Copyright (c) 2025-2026 Valentyn Kolesnikov <0009-0003-9608-3364@orcid.org>
       recorder.onerror = e => reject(e.error || new Error('Recording error'));
     });
 
-    // 8. Frame drawing logic
+    const useRVFC = 'requestVideoFrameCallback' in HTMLVideoElement.prototype;
+
+    // ====== WARMUP PHASE ======
+    // Pre-decode the first frames so playback at record-time is smooth
+    updateProgress(5, t('warmup'));
+    await warmupVideo(video, ctx, canvas, outW, outH, videoTrack, useRVFC);
+
+    // ====== AUDIO METER (start NOW so it's already drawing on record start) ======
+    if (hasAudio && analyser) {
+      const meterEl = document.getElementById('audioMeter');
+      const meterFill = document.getElementById('audioMeterFill');
+      meterEl.classList.add('show');
+
+      const bufferLength = analyser.frequencyBinCount;
+      const dataArray = new Uint8Array(bufferLength);
+
+      const updateMeter = () => {
+        analyser.getByteFrequencyData(dataArray);
+        let sum = 0;
+        for (let i = 0; i < bufferLength; i++) sum += dataArray[i];
+        const avg = sum / bufferLength;
+        const pct = Math.min(100, (avg / 128) * 100);
+        meterFill.style.width = pct + '%';
+        audioMeterRAF = requestAnimationFrame(updateMeter);
+      };
+      updateMeter();
+    }
+
+    // ====== Push the pre-warmed first frame into the canvas stream ======
+    // The canvas already has frame 0 drawn from warmup. We push it BEFORE
+    // recorder.start() so the very first chunk has a real frame.
+    ctx.drawImage(video, 0, 0, outW, outH);
+    if (videoTrack.requestFrame) {
+      try { videoTrack.requestFrame(); } catch(e) {}
+    }
+
+    // Small delay to let the stream pick up the initial frame
+    await new Promise(r => setTimeout(r, 30));
+
     let frameCount = 0;
     let stopFrameLoop = false;
-    const useRVFC = 'requestVideoFrameCallback' in HTMLVideoElement.prototype;
 
     function drawFrame() {
       if (video.videoWidth && video.videoHeight) {
         ctx.drawImage(video, 0, 0, outW, outH);
-        // Push the frame to MediaRecorder
         if (videoTrack.requestFrame) {
           try { videoTrack.requestFrame(); } catch(e) {}
         }
@@ -986,82 +1858,108 @@ Copyright (c) 2025-2026 Valentyn Kolesnikov <0009-0003-9608-3364@orcid.org>
       rafId = requestAnimationFrame(rafLoop);
     }
 
-    // 9. Start recording
-    updateProgress(8, t('decoding'));
+    updateProgress(10, t('decoding'));
     addLog(t('decoding') + ' (' + (useRVFC ? 'rVFC' : 'rAF') + ')');
 
-    // Resume audio context (must be after user gesture - we're in click handler)
-    if (audioCtx && audioCtx.state === 'suspended') {
-      try { await audioCtx.resume(); } catch(e) {}
-    }
+    // ====== SYNCHRONIZED START ======
+    // Use rAF to align all three actions (recorder start, frame capture
+    // loop, and playback) within the same browser frame. This avoids
+    // any time gap where audio plays but no video frame is captured,
+    // or vice versa.
+    await new Promise(resolve => requestAnimationFrame(resolve));
 
-    recorder.start(250);
+    const startTime = performance.now();
 
-    // Draw the very first frame before play (some browsers need this)
-    drawFrame();
+    // Start recorder FIRST. The first frame is already in the canvas
+    // stream from the pre-push above, so the recorder immediately has
+    // video data on its first chunk.
+    recorder.start(100);
 
-    // Start play
+    // Kick off frame capture loop IMMEDIATELY (before play) so we keep
+    // pushing frames during the play() startup latency window.
+    if (useRVFC) rvfcLoop();
+    else rafId = requestAnimationFrame(rafLoop);
+
+    // Continuously push current frame for ~150ms while play() is starting,
+    // so the recorder always has fresh video while audio is warming up.
+    let prePlayPusher = setInterval(() => {
+      if (videoTrack.requestFrame) {
+        try {
+          ctx.drawImage(video, 0, 0, outW, outH);
+          videoTrack.requestFrame();
+        } catch(e) {}
+      }
+    }, 16);
+
+    // Now start playback
     try {
       await video.play();
     } catch (e) {
+      clearInterval(prePlayPusher);
       throw new Error('Cannot start playback: ' + e.message);
     }
 
-    // Start frame loop AFTER play started
-    if (useRVFC) {
-      rvfcLoop();
-    } else {
-      rafId = requestAnimationFrame(rafLoop);
-    }
+    // Stop the pre-play pusher once playback is actually running
+    // (give it a small grace period so audio/video become synced)
+    setTimeout(() => clearInterval(prePlayPusher), 200);
 
-    // 10. Progress tracking
-    const duration = video.duration;
     const progressInterval = setInterval(() => {
-      if (duration && isFinite(duration)) {
-        const pct = Math.min(92, 10 + Math.round((video.currentTime / duration) * 82));
+      if (realDuration && isFinite(realDuration)) {
+        const pct = Math.min(92, 12 + Math.round((video.currentTime / realDuration) * 80));
         updateProgress(pct, t('encoding'));
       }
     }, 200);
 
-    // 11. Wait for video end
     await new Promise((resolve) => {
+      let done = false;
+      const finish = () => { if (!done) { done = true; resolve(); } };
+
       const onEnded = () => {
         video.removeEventListener('ended', onEnded);
-        resolve();
+        addLog('Video ended');
+        finish();
       };
       video.addEventListener('ended', onEnded);
-      // Safety timeout (duration + 30s)
-      setTimeout(() => {
-        if (video.ended || video.currentTime >= duration - 0.1) {
-          resolve();
-        } else {
-          addLog('Safety timeout reached');
-          resolve();
+
+      const endChecker = setInterval(() => {
+        if (done) { clearInterval(endChecker); return; }
+        if (video.currentTime >= realDuration - 0.05 || video.ended) {
+          clearInterval(endChecker);
+          addLog(`End at ${video.currentTime.toFixed(2)}s`);
+          finish();
         }
-      }, (duration + 30) * 1000);
+      }, 100);
+
+      setTimeout(() => {
+        clearInterval(endChecker);
+        if (!done) finish();
+      }, (realDuration + 30) * 1000);
     });
 
-    // Draw a few final frames to make sure end is captured
-    for (let i = 0; i < 5; i++) {
+    const elapsedSec = (performance.now() - startTime) / 1000;
+    addLog(`Recorded: ${elapsedSec.toFixed(2)}s`);
+
+    // Tail: capture a few final frames
+    for (let i = 0; i < 3; i++) {
       drawFrame();
-      await new Promise(r => setTimeout(r, 50));
+      await new Promise(r => setTimeout(r, 33));
     }
 
     clearInterval(progressInterval);
     stopFrameLoop = true;
     if (rafId) cancelAnimationFrame(rafId);
+    if (audioMeterRAF) cancelAnimationFrame(audioMeterRAF);
+    document.getElementById('audioMeter').classList.remove('show');
 
-    addLog(`Total frames drawn: ${frameCount}`);
+    addLog(`Frames: ${frameCount}`);
+
+    await new Promise(r => setTimeout(r, 250));
+
     updateProgress(94, t('finalizing'));
-    addLog(t('finalizing'));
 
-    // 12. Stop recorder
-    if (recorder.state !== 'inactive') {
-      recorder.stop();
-    }
+    if (recorder.state !== 'inactive') recorder.stop();
     await recordingDone;
 
-    // 13. Cleanup
     try { video.pause(); } catch(e) {}
     URL.revokeObjectURL(videoURL);
     canvasStream.getTracks().forEach(tr => tr.stop());
@@ -1069,15 +1967,47 @@ Copyright (c) 2025-2026 Valentyn Kolesnikov <0009-0003-9608-3364@orcid.org>
       try { await audioCtx.close(); } catch(e) {}
     }
 
-    // 14. Build blob
-    const blob = new Blob(chunks, { type: picked.mime });
-    addLog('Output size: ' + formatSize(blob.size));
+    const rawBlob = new Blob(chunks, { type: picked.mime });
+    addLog('Size: ' + formatSize(rawBlob.size));
 
-    if (blob.size < 1000) {
-      throw new Error('Output is empty or invalid');
+    if (rawBlob.size < 1000) {
+      throw new Error('Output is empty');
     }
 
-    return blob;
+    const actualDuration = Math.max(elapsedSec, realDuration);
+
+    updateProgress(97, t('remuxing'));
+
+    let finalBlob;
+    if (picked.mime.includes('mp4')) {
+      addLog('Patching MP4 duration...');
+      finalBlob = await fixMp4Duration(rawBlob, actualDuration);
+    } else {
+      addLog('Patching WEBM duration...');
+      finalBlob = await fixWebmDuration(rawBlob, actualDuration);
+    }
+
+    const verifyDur = await verifyBlobDuration(finalBlob);
+    addLog(`✓ Verified: ${verifyDur.toFixed(2)}s`);
+
+    return finalBlob;
+  }
+
+  async function verifyBlobDuration(blob) {
+    return new Promise((resolve) => {
+      const url = URL.createObjectURL(blob);
+      const v = document.createElement('video');
+      v.preload = 'metadata';
+      v.muted = true;
+      v.src = url;
+      const cleanup = (d) => { URL.revokeObjectURL(url); resolve(d); };
+      v.onloadedmetadata = () => {
+        if (isFinite(v.duration) && v.duration > 0) cleanup(v.duration);
+        else cleanup(0);
+      };
+      v.onerror = () => cleanup(0);
+      setTimeout(() => cleanup(0), 3000);
+    });
   }
 
   document.getElementById('convertBtn').addEventListener('click', async () => {
@@ -1097,8 +2027,22 @@ Copyright (c) 2025-2026 Valentyn Kolesnikov <0009-0003-9608-3364@orcid.org>
 
       const quality = document.getElementById('qualitySelect').value;
       const resolution = document.getElementById('resolutionSelect').value;
+      const audioBitrate = document.getElementById('audioBitrateSelect').value;
+      const audioVolume = document.getElementById('audioVolumeSelect').value;
+      const audioToggle = document.getElementById('includeAudioToggle');
+      const includeAudio = audioToggle.checked && !audioToggle.disabled;
 
-      convertedBlob = await convertVideo(selectedFile, { quality, resolution });
+      let knownDuration = detectedDuration;
+      if (!knownDuration || knownDuration <= 0) {
+        knownDuration = await getAccurateDuration(selectedFile);
+        detectedDuration = knownDuration;
+        refreshDuration();
+      }
+
+      convertedBlob = await convertVideo(selectedFile, {
+        quality, resolution, audioBitrate, audioVolume, includeAudio,
+        knownDuration
+      });
 
       updateProgress(100, '✓');
 
@@ -1127,17 +2071,26 @@ Copyright (c) 2025-2026 Valentyn Kolesnikov <0009-0003-9608-3364@orcid.org>
   document.getElementById('resetBtn').addEventListener('click', () => {
     selectedFile = null;
     convertedBlob = null;
+    detectedHasAudio = null;
+    detectedDuration = null;
     fileInput.value = '';
     document.getElementById('fileInfo').classList.remove('show');
     document.getElementById('downloadSection').classList.remove('show');
     document.getElementById('settingsCard').style.display = 'flex';
     document.getElementById('convertBtn').disabled = true;
     document.getElementById('downloadBtn').textContent = t('downloadBtn');
+    const toggle = document.getElementById('includeAudioToggle');
+    toggle.checked = true;
+    toggle.disabled = false;
+    refreshAudioStatus();
+    refreshDuration();
+    updateAudioToggleHint();
     localStorage.removeItem(STATE_KEY);
   });
 
   loadState();
   applyTranslations();
+  refreshAudioOptionsState();
 </script>
 </body>
 </html>
